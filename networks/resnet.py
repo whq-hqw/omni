@@ -1,7 +1,12 @@
 import tensorflow as tf
 import numpy as np
 import networks.blocks as block
+from datasets.load_data import get_ilsvrc_dataset
 
+class Resnet():
+    def __init__(self, path, layers):
+        self.dataset_path = path
+        self.layers = layers
 
 def build_18(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
@@ -63,6 +68,17 @@ def build_152(input):
     net = tf.layers.dense(net, 1000, activation=tf.nn.softmax, name="average_pool")
     return net
 
+def data_load_graph():
+    #dataset = get_ilsvrc_dataset(path="~/Pictures/dataset")
+    image_paths_placeholder = tf.placeholder(shape=(None), dtype=tf.string)
+    ground_truth_placeholder = tf.placeholder(shape=(None), dtype=tf.int32)
+
+    input_queue = tf.FIFOQueue(capacity=100000, dtypes=[tf.strings, tf.int32])
+    enqueue = input_queue.enqueue_many([image_paths_placeholder, ground_truth_placeholder])
+
+def generate_batch():
+
+
 def evaluation(prediction, ground_truth):
     correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
     return tf.reduce_sum(tf.cast(correct, tf.int32))
@@ -71,7 +87,6 @@ def build(input, ground_truth, learning_rate, architecture=build_50,
            loss_function = tf.losses.softmax_cross_entropy,
            net_optimizer = tf.train.GradientDescentOptimizer):
     prediction = architecture(input)
-
     loss = loss_function(labels=ground_truth, logits=prediction)
 
     # Add a scalar summary for the snapshot loss.

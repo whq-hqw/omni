@@ -4,7 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../facenet/.idea/facenet.iml" filepath="$PROJECT_DIR$/../facenet/.idea/facenet.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/omni.iml" filepath="$PROJECT_DIR$/.idea/omni.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../tensorflow-vgg/.idea/tensorflow-vgg.iml" filepath="$PROJECT_DIR$/../tensorflow-vgg/.idea/tensorflow-vgg.iml" />
     </modules>
   </component>
 </project>
