@@ -63,6 +63,27 @@ def get_dataset_with_addtional_info(path, extensions=None, verbose=False):
     path = os.path.expanduser(path)
     raise NotImplementedError
 
+def data_load_graph(threads, batch_size, input_type, input_shape, output_shape, capacity=100000):
+    assert len(input_type) is 2
+    assert len(input_shape) is 2
+    image_paths_placeholder = tf.placeholder(shape=(None, input_shape[0]), dtype=input_type[0])
+    ground_truth_placeholder = tf.placeholder(shape=(None, input_shape[1]), dtype=input_type[1])
+
+    input_queue = tf.FIFOQueue(capacity=capacity, dtypes=input_type, shapes=input_shape)
+    enqueue_op = input_queue.enqueue_many([image_paths_placeholder, ground_truth_placeholder])
+
+    images_and_labels = []
+    for _ in range(threads):
+        img_path, label = input_queue.dequeue()
+        img = tf.read_file(img_path)
+        # TODO: Image Augumentation
+        images_and_labels.append(img, label)
+    image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size,
+                                                   capacity=4 * batch_size * threads,
+                                                   shapes=output_shape,
+                                                   enqueue_many=True, allow_smaller_final_batch=True)
+    return enqueue_op, image_batch, label_batch
+
 if __name__ == "__main__":
     #dataset = get_ilsvrc_dataset(path="~/Downloads/Dataset/pedestrain")
     #print(len(dataset))

@@ -7,25 +7,6 @@ class Resnet():
     def __init__(self, path, layers):
         self.dataset_path = path
         self.layers = layers
-        
-def data_load_graph(threads, batch_size, img_size, channel):
-    image_paths_placeholder = tf.placeholder(shape=(None), dtype=tf.string)
-    ground_truth_placeholder = tf.placeholder(shape=(None), dtype=tf.int32)
-
-    input_queue = tf.FIFOQueue(capacity=100000, dtypes=[tf.strings, tf.int32])
-    enqueue = input_queue.enqueue_many([image_paths_placeholder, ground_truth_placeholder])
-    
-    images_and_labels = []
-    for _ in range(threads):
-        img_path, label = input_queue.dequeue()
-        img = tf.read_file(img_path)
-        #TODO: Image Augumentation
-        images_and_labels.append(img, label)
-    image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size,
-                                                   capacity= 4*batch_size*threads,
-                                                   shapes=[(img_size, img_size, channel), ()],
-                                                   enqueue_many=True, allow_smaller_final_batch=True)
-    return enqueue, image_batch, label_batch
 
 def evaluation(prediction, ground_truth):
     correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
