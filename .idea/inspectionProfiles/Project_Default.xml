@@ -4,7 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="8">
+          <list size="9">
             <item index="0" class="java.lang.String" itemvalue="tensorflow" />
             <item index="1" class="java.lang.String" itemvalue="numpy" />
             <item index="2" class="java.lang.String" itemvalue="scipy" />
@@ -13,6 +13,7 @@
             <item index="5" class="java.lang.String" itemvalue="requests" />
             <item index="6" class="java.lang.String" itemvalue="Pillow" />
             <item index="7" class="java.lang.String" itemvalue="psutil" />
+            <item index="8" class="java.lang.String" itemvalue="tensorflow-gpu" />
           </list>
         </value>
       </option>

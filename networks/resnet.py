@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import networks.blocks as block
 from datasets.load_data import get_ilsvrc_dataset
+from networks.train_operation import create_train_op
 
 class Resnet():
     def __init__(self, path, layers):
@@ -12,21 +13,32 @@ def evaluation(prediction, ground_truth):
     correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
     return tf.reduce_sum(tf.cast(correct, tf.int32))
 
-def build(input, ground_truth, learning_rate, architecture,
-           loss_function = tf.losses.softmax_cross_entropy,
-           net_optimizer = tf.train.GradientDescentOptimizer):
+
+def build(input, ground_truth, learning_rate, architecture, gpu_memory_fraction=0.9,
+          loss_function = tf.nn.tf.nn.softmax_cross_entropy_with_logits_v2):
     prediction = architecture(input)
-    loss = loss_function(labels=ground_truth, logits=prediction)
+
+    # Calculate Loss
+    loss = tf.reduce_mean(loss_function(labels=ground_truth, logits=prediction))
+    regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    total_loss = tf.add_n([loss] + regularization_losses, name='total_loss')
 
     # Add a scalar summary for the snapshot loss.
     tf.summary.scalar('loss', loss)
-    # Create the gradient descent optimizer with the given learning rate.
-    optimizer = net_optimizer(learning_rate)
+
     # Create a variable to track the global step.
     global_step = tf.Variable(0, name='global_step', trainable=False)
     # Use the optimizer to apply the gradients that minimize the loss
     # (and also increment the global step counter) as a single training step.
-    train_op = optimizer.minimize(loss, global_step=global_step)
+    train_op = create_train_op("ADAM", learning_rate, total_loss, tf.global_variables(), global_step=global_step)
+
+    # Start running operations on the Graph.
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
+    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+
+    # Initialize variables
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
 
     # Add the Op to compare the logits to the labels during evaluation.
     #eval_correct = mnist.evaluation(prediction, ground_truth)
@@ -34,14 +46,8 @@ def build(input, ground_truth, learning_rate, architecture,
     # Build the summary Tensor based on the TF collection of Summaries.
     summary = tf.summary.merge_all()
 
-    # Add the variable initializer Op.
-    init = tf.global_variables_initializer()
-
     # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver()
-
-    # Create a session for running Ops on the Graph.
-    sess = tf.Session()
+    saver = tf.train.Saver(max_to_keep=3)
 
     # Instantiate a SummaryWriter to output summaries and the Graph.
     #summary_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)

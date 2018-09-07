@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../facenet/.idea/facenet.iml" filepath="$PROJECT_DIR$/../facenet/.idea/facenet.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/omni.iml" filepath="$PROJECT_DIR$/.idea/omni.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../wap_data/.idea/wap_data.iml" filepath="$PROJECT_DIR$/../wap_data/.idea/wap_data.iml" />
     </modules>
   </component>
 </project>
