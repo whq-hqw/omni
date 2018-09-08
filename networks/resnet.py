@@ -2,34 +2,29 @@ import tensorflow as tf
 import numpy as np
 import networks.blocks as block
 from datasets.load_data import get_ilsvrc_dataset
+from networks.train_op import build_train_op
 
-class Resnet():
-    def __init__(self, path, layers):
-        self.dataset_path = path
-        self.layers = layers
 
 def evaluation(prediction, ground_truth):
     correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
     return tf.reduce_sum(tf.cast(correct, tf.int32))
 
-def build(input, ground_truth, learning_rate, architecture,
-           loss_function = tf.losses.softmax_cross_entropy,
-           net_optimizer = tf.train.GradientDescentOptimizer):
+def calculate_loss(input, ground_truth):
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(input, ground_truth))
+    reg_loss = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    total_loss = tf.add_n([loss] + reg_loss, name='total_loss')
+    return total_loss
+
+def build(input, ground_truth, learning_rate, architecture):
     prediction = architecture(input)
-    loss = loss_function(labels=ground_truth, logits=prediction)
+    loss = calculate_loss(prediction, ground_truth)
+
+    global_step = tf.Variable(0, trainable=False)
 
     # Add a scalar summary for the snapshot loss.
     tf.summary.scalar('loss', loss)
     # Create the gradient descent optimizer with the given learning rate.
-    optimizer = net_optimizer(learning_rate)
-    # Create a variable to track the global step.
-    global_step = tf.Variable(0, name='global_step', trainable=False)
-    # Use the optimizer to apply the gradients that minimize the loss
-    # (and also increment the global step counter) as a single training step.
-    train_op = optimizer.minimize(loss, global_step=global_step)
-
-    # Add the Op to compare the logits to the labels during evaluation.
-    #eval_correct = mnist.evaluation(prediction, ground_truth)
+    train_op = build_train_op(loss, "adam", learning_rate, tf.trainable_variables(), global_step)
 
     # Build the summary Tensor based on the TF collection of Summaries.
     summary = tf.summary.merge_all()
@@ -38,7 +33,7 @@ def build(input, ground_truth, learning_rate, architecture,
     init = tf.global_variables_initializer()
 
     # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=3)
 
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
