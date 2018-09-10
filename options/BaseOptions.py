@@ -11,4 +11,7 @@ class BaseOptions():
                                  help="size of input images")
         self.parser.add_argument("--img_channel", type=int, default=3,
                                  help="3 stand for color image while 1 for greyscale")
-        
+        self.parser.add_argument("--·gpu_id", type=str, default="0",
+                                 help="if None, then use CPU mode.")
+        self.parser.add_argument("--·gpu_memory_fraction", type=float, default="0.9",
+                                 help="GPU memory usage.")
