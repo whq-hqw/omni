@@ -63,20 +63,31 @@ def get_dataset_with_addtional_info(path, extensions=None, verbose=False):
     path = os.path.expanduser(path)
     raise NotImplementedError
 
-def data_load_graph(threads, batch_size, input_type, input_shape, output_shape, capacity=100000):
-    assert len(input_type) is 2
-    assert len(input_shape) is 2
-    image_paths_placeholder = tf.placeholder(shape=(None, input_shape[0]), dtype=input_type[0])
-    ground_truth_placeholder = tf.placeholder(shape=(None, input_shape[1]), dtype=input_type[1])
+def image_augumentation(img_tensor):
+    # TODO: Image Augumentation
+    return img_tensor
 
-    input_queue = tf.FIFOQueue(capacity=capacity, dtypes=input_type, shapes=input_shape)
-    enqueue_op = input_queue.enqueue_many([image_paths_placeholder, ground_truth_placeholder])
+def get_shape(placeholder):
+    try:
+        result = [_ for _ in placeholder.shape.as_list() if _ is not None]
+    except ValueError:
+        result = ()
+    return result
+
+def data_load_graph(img_path, ground_truth, threads, batch_size, output_shape, capacity=100000):
+    # Find None Dimension's location
+    img_path_shape = get_shape(img_path)
+    ground_truth_shape = get_shape(ground_truth)
+
+    input_queue = tf.FIFOQueue(capacity=capacity, dtypes=[img_path.dtype, ground_truth.dtype],
+                               shapes=[img_path_shape, ground_truth_shape])
+    enqueue_op = input_queue.enqueue_many([img_path, ground_truth])
 
     images_and_labels = []
     for _ in range(threads):
         img_path, label = input_queue.dequeue()
         img = tf.read_file(img_path)
-        # TODO: Image Augumentation
+        img=image_augumentation(img)
         images_and_labels.append(img, label)
     image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size,
                                                    capacity=4 * batch_size * threads,

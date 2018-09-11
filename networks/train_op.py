@@ -50,18 +50,15 @@ def build_train_op(total_loss, optimizer, lr, variable, global_step,
         grads = opt.compute_gradients(total_loss, variable)
     # Apply gradients.
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-
     # Add histograms for trainable variables.
     if log_histograms:
         for var in tf.trainable_variables():
             tf.summary.histogram(var.op.name, var)
-
     # Add histograms for gradients.
     if log_histograms:
         for grad, var in grads:
             if grad is not None:
                 tf.summary.histogram(var.op.name + '/gradients', grad)
-
     # Track the moving averages of all trainable variables.
     variable_averages = tf.train.ExponentialMovingAverage(
         moving_decay, global_step)
@@ -69,5 +66,8 @@ def build_train_op(total_loss, optimizer, lr, variable, global_step,
 
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
         train_op = tf.no_op(name='train')
-
     return train_op
+
+def train(num_epoches):
+    for i in range(num_epoches):
+        pass

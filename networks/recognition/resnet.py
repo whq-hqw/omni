@@ -3,10 +3,57 @@ import networks.blocks as block
 import datasets.load_data as load
 from networks.train_op import build_train_op
 
+class Resnet():
+    def __init__(self, args):
+        # Declare Placeholders
+        self.image_paths_placeholder = tf.placeholder(shape=(None), dtype=tf.string)
+        self.ground_truth_placeholder = tf.placeholder(shape=(None), dtype=tf.int32)
+        self.num_epoch = args.epoch_num
 
-def evaluation(prediction, ground_truth):
-    correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
-    return tf.reduce_sum(tf.cast(correct, tf.int32))
+    def build_model(self, args, input, ground_truth, network, loss_function,
+              global_step=tf.Variable(0, trainable=False)):
+        # Make Prediction
+        prediction = network(input)
+        # Calculate Loss
+        self.loss = loss_function(prediction, ground_truth)
+        # Create the gradient descent optimizer with the given learning rate.
+        self.train_op = build_train_op(self.loss, args.optimizer, args.learning_rate,
+                                  tf.trainable_variables(), global_step)
+        # Build the summary Tensor based on the TF collection of Summaries.
+        self.summary = tf.summary.merge_all()
+        # Create a saver for writing training checkpoints.
+        self.saver = tf.train.Saver(max_to_keep=3)
+
+    def create_graph(self, args):
+        with tf.Graph().as_default():
+            # Data Load Graph
+            self.enqueue_op, image_batch, label_batch = load.data_load_graph(
+                self.image_paths_placeholder, self.ground_truth_placeholder, args.loading_threads,
+                args.batch_size, args.output_shape)
+
+            # Network Architecture and Train_op Graph
+            self.build_model(args, image_batch, label_batch, network=resnet_50, loss_function=calculate_loss)
+
+            # Training Configuration
+            if args.gpu_id is not None:
+                gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
+                sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+            else:
+                sess = tf.Session()
+            # Initialize variables
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
+            summary_writer = tf.summary.FileWriter(args.log_dir, sess.graph)
+            coord = tf.train.Coordinator()
+            tf.train.start_queue_runners(coord=coord, sess=sess)
+
+    def fit(self, dataset):
+        for i in range(self.epoch_num):
+            sess.run(enqueue_op, {image_paths_placeholder: triplet_paths_array, ground_truth_placeholder: labels_array})
+
+    def evaluation(prediction, ground_truth):
+        correct = tf.nn.in_top_k(predictions=prediction, targets=ground_truth, k=1)
+        return tf.reduce_sum(tf.cast(correct, tf.int32))
 
 def calculate_loss(input, ground_truth):
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(input, ground_truth))
@@ -15,45 +62,7 @@ def calculate_loss(input, ground_truth):
     tf.summary.scalar('total_loss', total_loss)
     return total_loss
 
-def build(args, input, ground_truth, network, loss_function,
-          global_step=tf.Variable(0, trainable=False)):
-    # Make Prediction
-    prediction = network(input)
-    # Calculate Loss
-    loss = loss_function(prediction, ground_truth)
-    # Create the gradient descent optimizer with the given learning rate.
-    train_op = build_train_op(loss, args.optimizer, args.learning_rate,
-                              tf.trainable_variables(), global_step)
-    # Build the summary Tensor based on the TF collection of Summaries.
-    summary = tf.summary.merge_all()
-    # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver(max_to_keep=3)
-    return train_op, summary, saver
-
-def start_train(args):
-    with tf.Graph().as_default():
-        enqueue_op, image_batch, label_batch = load.data_load_graph(args.loading_threads,
-                                                                    args.batch_size, args.input_type, args.input_shape,
-                                                                    args.output_shape)
-        train_op, summary, saver = build(args, image_batch, label_batch, network=build_50,
-                                         loss_function=calculate_loss)
-        # Start running operations on the Graph.
-        if args.gpu_id is not None:
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
-            sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-        else:
-            sess = tf.Session()
-        # Initialize variables
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-
-        summary_writer = tf.summary.FileWriter(args.log_dir, sess.graph)
-        coord = tf.train.Coordinator()
-        tf.train.start_queue_runners(coord=coord, sess=sess)
-        # TODO: Train Start
-
-
-def build_18(input):
+def resnet_18(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
     net = tf.layers.max_pooling2d(inputs=net, pool_size=[3, 3], strides=2)
 
@@ -66,7 +75,7 @@ def build_18(input):
     return net
 
 
-def build_34(input):
+def resnet_34(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
     net = tf.layers.max_pooling2d(inputs=net, pool_size=[3, 3], strides=2)
 
@@ -79,7 +88,7 @@ def build_34(input):
     return net
 
 
-def build_50(input):
+def resnet_50(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
     net = tf.layers.max_pooling2d(inputs=net, pool_size=[3, 3], strides=2)
 
@@ -92,7 +101,7 @@ def build_50(input):
     return net
 
 
-def build_101(input):
+def resnet_101(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
     net = tf.layers.max_pooling2d(inputs=net, pool_size=[3, 3], strides=2)
 
@@ -105,7 +114,7 @@ def build_101(input):
     return net
 
 
-def build_152(input):
+def resnet_152(input):
     net = block.resnet_block(input, scope="conv1_x", filters=[64], kernel_sizes=[7])
     net = tf.layers.max_pooling2d(inputs=net, pool_size=[3, 3], strides=2)
 
