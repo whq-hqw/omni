@@ -64,7 +64,7 @@ def get_shape(placeholder):
         result = ()
     return result
 
-def data_load_graph(img_path, ground_truth, threads, batch_size, output_shape, capacity=100000):
+def data_load_graph(img_path, ground_truth, threads, batch_size, output_shape, capacity):
     # Find None Dimension's location
     img_path_shape = get_shape(img_path)
     ground_truth_shape = get_shape(ground_truth)
