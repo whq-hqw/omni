@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from networks.resnet import resnet_50
+# All Users have to change is the network part
 
 from tensorflow.examples.tutorials.mnist import input_data
 

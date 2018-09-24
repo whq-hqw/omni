@@ -8,11 +8,13 @@ from options.BaseOptions import BaseOptions
 class SimoSerra():
     def __init__(self, args):
         # Declare Placeholders
-        self.image_paths_placeholder = tf.placeholder(shape=(None), dtype=tf.string)
-        self.ground_truth_placeholder = tf.placeholder(shape=(None), dtype=tf.string)
-        self.opt = args
-        self.dataset_path = os.path.expanduser(args.path)
+        self.image_paths_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
+        self.ground_truth_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
+        #TODO: Change the magical numbers into parameters
+        self.input_queue = tf.FIFOQueue(capacity=args.capacity, shapes=[(1,), (1,)],
+                                        dtypes=[tf.string, tf.string])
         self.global_step = tf.Variable(0, trainable=False)
+        self.opt = args
 
     def build_model(self, args, input, ground_truth, network, loss_function):
         # Make Prediction
@@ -32,7 +34,7 @@ class SimoSerra():
             # Data Load Graph
             self.enqueue_op, self.image_batch, self.label_batch = load.data_load_graph(
                 self.image_paths_placeholder, self.ground_truth_placeholder, args.loading_threads,
-                args.batch_size, args.output_shape)
+                args.batch_size, args.output_shape, self.input_queue)
             # Network Architecture and Train_op Graph
             self.build_model(args, self.image_batch, self.label_batch, network=simoserra_net, loss_function=calculate_loss)
             # Training Configuration
@@ -49,7 +51,7 @@ class SimoSerra():
             tf.train.start_queue_runners(coord=coord, sess=self.sess)
 
     def fit(self):
-        dataset = load.img2img_dataset(self.dataset_path, capacity = self.opt.capacity)
+        dataset = load.img2img_dataset(self.opt.path, capacity = self.opt.capacity)
         for i in range(self.opt.epoch_num):
             if i % 100 is 0:
                 # Update the queue for each 100 epochs
@@ -73,6 +75,16 @@ def simoserra_net(input):
     net = block.conv_block(input, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3]*7,
+                           stride=[2, 1, 1, 1, 1, 1, 1])
+    net = block.conv_block(net, "block_2", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_2", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_2", filters=[48, 24, 1], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    return net
+
+def simoserra_net2018(input1, input2):
+    net = block.conv_block(input1, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
+    net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
+    net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3] * 7,
                            stride=[2, 1, 1, 1, 1, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     net = block.conv_block(net, "block_2", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
