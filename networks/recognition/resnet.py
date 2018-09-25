@@ -30,7 +30,7 @@ class Resnet():
         with tf.Graph().as_default():
             # Data Load Graph
             self.enqueue_op, self.image_batch, self.label_batch = load.data_load_graph(
-                self.image_paths_placeholder, self.ground_truth_placeholder, args.loading_threads,
+                self.image_paths_placeholder, self.ground_truth_placeholder, args.threads,
                 args.batch_size, args.output_shape)
 
             # Network Architecture and Train_op Graph

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 import os, random
 
 def extension_check(file, extentions):
@@ -44,7 +45,7 @@ def img2img_dataset(path, A_B_folder=["trainA", "trainB"], one_to_one=True,
         dataset.update({"A": [_ for _ in os.listdir(source) if extension_check(_, extensions)]})
         dataset.update({"B": [_ for _ in os.listdir(target) if extension_check(_, extensions)]})
         #dataset.append([Sample(label="B", path=_) for _ in os.listdir(target) if extension_check(_, extensions)])
-    print("Dataset loading is complete.")
+    print('Dataset loading is complete.')
     return dataset
 
 def dataset_with_addtional_info(path, extensions=None, verbose=False):
@@ -53,9 +54,20 @@ def dataset_with_addtional_info(path, extensions=None, verbose=False):
     path = os.path.expanduser(path)
     raise NotImplementedError
 
-def image_augumentation(img_tensor):
+
+def load_image(args, path, seed):
+    img_byte = tf.read_file(path)
+    image = tf.image.decode_image(img_byte)
     # TODO: Image Augumentation
-    return img_tensor
+    if args.random_crop:
+        image = tf.random_crop(image, [args.img_size, args.img_size, 3], seed=seed)
+    else:
+        image = tf.image.resize_image_with_crop_or_pad(image, args.img_size, args.img_size)
+    if args.random_flip:
+        image = tf.image.random_flip_left_right(image, seed=seed)
+        
+    image.set_shape((args.img_size, args.img_size, 3))
+    return tf.image.per_image_standardization(image)
 
 def get_shape(placeholder):
     try:
@@ -64,20 +76,28 @@ def get_shape(placeholder):
         result = ()
     return result
 
-def data_load_graph(img_path, ground_truth, threads, batch_size, output_shape, input_queue):
-    enqueue_op = input_queue.enqueue_many([img_path, ground_truth])
-
+def data_load_graph(args, input_queue, output_shape):
     images_and_labels = []
-    for _ in range(threads):
-        img_path, label = input_queue.dequeue()
-        img = tf.read_file(img_path)
-        img=image_augumentation(img)
-        images_and_labels.append(img, label)
-    image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size,
-                                                   capacity=4 * batch_size * threads,
+    for _ in range(args.threads):
+        seed = np.random.randint(4096)
+        print("data_load_graph random seed:{}".format(seed))
+        img_paths, labels = input_queue.dequeue()
+        images = []
+        for path in tf.unstack(img_paths):
+            images.append(load_image(args, path, seed))
+        if args.img2img:
+            gt_images = []
+            for gt_path in tf.unstack(labels):
+                gt_images.append(load_image(args, gt_path, seed))
+        images_and_labels.append([images, gt_images])
+    # The actual shape of images_and_labels is:
+    #    [[several images], [several labels]]
+    #    Where images and labels can be arbitrary shapes
+    image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=args.batch_size,
+                                                   capacity=4 * args.batch_size * args.threads,
                                                    shapes=output_shape,
                                                    enqueue_many=True, allow_smaller_final_batch=True)
-    return enqueue_op, image_batch, label_batch
+    return image_batch, label_batch
 
 if __name__ == "__main__":
     #dataset = ilsvrc_dataset(path="~/Downloads/Dataset/pedestrain")

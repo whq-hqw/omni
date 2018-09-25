@@ -2,6 +2,7 @@ import tensorflow as tf
 
 def build_train_op(total_loss, optimizer, lr, variable, global_step,
                    moving_decay=0.999, log_histograms=True):
+    optimizer = optimizer.upper()
     if optimizer == 'ADAGRAD':
         opt = tf.train.AdagradOptimizer(lr)
     elif optimizer == 'ADADELTA':

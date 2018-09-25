@@ -7,18 +7,22 @@ from options.BaseOptions import BaseOptions
 
 class SimoSerra():
     def __init__(self, args):
-        # Declare Placeholders
+        self.opt = args
+        
+    def initialize(self):
         self.image_paths_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
         self.ground_truth_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
-        #TODO: Change the magical numbers into parameters
         self.input_queue = tf.FIFOQueue(capacity=args.capacity, shapes=[(1,), (1,)],
                                         dtypes=[tf.string, tf.string])
+        self.enqueue_op = self.input_queue.enqueue_many([self.image_paths_placeholder,
+                                                         self.ground_truth_placeholder])
+        self.output_shape = [(args.img_size, args.img_size, args.img_channel),
+                             (args.img_size, args.img_size, args.img_channel)]
         self.global_step = tf.Variable(0, trainable=False)
-        self.opt = args
 
     def build_model(self, args, input, ground_truth, network, loss_function):
         # Make Prediction
-        prediction = network(input)
+        prediction = network(input, args)
         # Calculate Loss
         self.loss = loss_function(prediction, ground_truth)
         # Create the gradient descent optimizer with the given learning rate.
@@ -31,12 +35,13 @@ class SimoSerra():
 
     def create_graph(self, args):
         with tf.Graph().as_default():
+            tmp = tf.constant(2)
+            self.initialize()
             # Data Load Graph
-            self.enqueue_op, self.image_batch, self.label_batch = load.data_load_graph(
-                self.image_paths_placeholder, self.ground_truth_placeholder, args.loading_threads,
-                args.batch_size, args.output_shape, self.input_queue)
+            self.image_batch, self.label_batch = load.data_load_graph(args, self.input_queue, self.output_shape)
             # Network Architecture and Train_op Graph
-            self.build_model(args, self.image_batch, self.label_batch, network=simoserra_net, loss_function=calculate_loss)
+            self.build_model(args, self.image_batch, self.label_batch, network=simoserra_net,
+                             loss_function=calculate_loss)
             # Training Configuration
             if args.gpu_id is not None:
                 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
@@ -71,24 +76,24 @@ def calculate_loss(prediction, ground_truth):
     tf.summary.scalar('total_loss', total_loss)
     return total_loss
 
-def simoserra_net(input):
+def simoserra_net(input, args):
     net = block.conv_block(input, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3]*7,
                            stride=[2, 1, 1, 1, 1, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[48, 24, 1], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_4", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_5", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_6", filters=[48, 24, args.img_channel], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     return net
 
-def simoserra_net2018(input1, input2):
+def simoserra_net2018(input1, input2, args):
     net = block.conv_block(input1, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3] * 7,
                            stride=[2, 1, 1, 1, 1, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     net = block.conv_block(net, "block_2", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[48, 24, 1], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+    net = block.conv_block(net, "block_2", filters=[48, 24, args.img_channel], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     return net
 
 if __name__ == "__main__":
