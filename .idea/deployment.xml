@@ -5,7 +5,7 @@
       <paths name="wang@218.221.23.123:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/wang/Downloads/tmp" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="Downloads/tmp" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

@@ -30,8 +30,8 @@ def img2img_dataset(path, A_B_folder=["trainA", "trainB"], one_to_one=True,
     target = os.path.join(path, A_B_folder[1])
     assert os.path.isdir(source) and os.path.isdir(target), "one of the folder does not exist."
     if one_to_one:
-        source_imgs = [os.path.join(A_B_folder[0], _) for _ in os.listdir(source) if extension_check(_, extensions)]
-        target_imgs = [os.path.join(A_B_folder[1], _) for _ in os.listdir(target) if extension_check(_, extensions)]
+        source_imgs = [os.path.join(path, A_B_folder[0], _) for _ in os.listdir(source) if extension_check(_, extensions)]
+        target_imgs = [os.path.join(path, A_B_folder[1], _) for _ in os.listdir(target) if extension_check(_, extensions)]
         if verbose: print("Sorting files...")
         source_imgs.sort()
         target_imgs.sort()
@@ -42,8 +42,8 @@ def img2img_dataset(path, A_B_folder=["trainA", "trainB"], one_to_one=True,
                 print("{} samples has been loaded...".format(i))
             dataset.update({target_imgs[i]: source_imgs[i]})
     else:
-        dataset.update({"A": [_ for _ in os.listdir(source) if extension_check(_, extensions)]})
-        dataset.update({"B": [_ for _ in os.listdir(target) if extension_check(_, extensions)]})
+        dataset.update({"A": [os.path.join(path, _) for _ in os.listdir(source) if extension_check(_, extensions)]})
+        dataset.update({"B": [os.path.join(path, _) for _ in os.listdir(target) if extension_check(_, extensions)]})
         #dataset.append([Sample(label="B", path=_) for _ in os.listdir(target) if extension_check(_, extensions)])
     print('Dataset loading is complete.')
     return dataset
@@ -53,7 +53,6 @@ def dataset_with_addtional_info(path, extensions=None, verbose=False):
     dataset = []
     path = os.path.expanduser(path)
     raise NotImplementedError
-
 
 def load_image(args, path, seed):
     img_byte = tf.read_file(path)
