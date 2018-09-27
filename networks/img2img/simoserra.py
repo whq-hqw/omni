@@ -15,14 +15,15 @@ class SimoSerra():
     def initialize(self):
         # 这里的变量决定了这个神经网络将要读取什么样数据(shape)，什么类型的数据(dtype)
         # 以及输出什么样的数据(output_shape)
-        self.image_paths_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
-        self.ground_truth_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string)
+        self.image_paths_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string, name="image_paths")
+        self.ground_truth_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string, name="ground_truth")
         self.input_queue = tf.FIFOQueue(capacity=args.capacity, shapes=[(1,), (1,)],
                                         dtypes=[tf.string, tf.string])
         self.enqueue_op = self.input_queue.enqueue_many([self.image_paths_placeholder,
                                                          self.ground_truth_placeholder])
         self.output_shape = [(args.img_size, args.img_size, args.img_channel),
                              (args.img_size, args.img_size, args.img_channel)]
+        self.learning_rate = tf.placeholder(tf.float16, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
 
     def build_model(self, args, network, loss_function):
