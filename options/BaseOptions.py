@@ -9,8 +9,10 @@ class BaseOptions():
                                  help="if None, then use CPU mode.")
         self.parser.add_argument("--gpu_memory_fraction", type=float, default=0.9,
                                  help="GPU memory usage.")
-        
 
+        self.parser.add_argument("--epoch_num", type=int, default=100,
+                                 help="Total training epoch")
+        
         # -------------------------------Optimizer------------------------------------
         self.parser.add_argument("--optimizer", type=str, default="adam")
         self.parser.add_argument("--learning_rate", type=float, default=0.0005)

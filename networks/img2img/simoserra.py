@@ -60,9 +60,12 @@ class SimoSerra():
             tf.train.start_queue_runners(coord=coord, sess=self.sess)
 
     def fit(self):
-        dataset = load.img2img_dataset(self.opt.path)
+        dataset = load.img2img_dataset(path=self.opt.path)
+        image_paths = np.expand_dims(np.array(list(dataset.keys())), axis=1)
+        labels = np.expand_dims(np.array([dataset[_] for _ in dataset.keys()]), axis=1)
+        feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
         for i in range(self.opt.epoch_num):
-            if i % 100 is 0:
+            if i % 10 is 0:
                 # Update the queue for each 100 epochs
                 subset = random.sample(list(dataset.items()), self.opt.capacity)
                 path = [element[1] for element in subset]
@@ -103,15 +106,14 @@ def simoserra_net2018(input1, input2, args):
 if __name__ == "__main__":
     args = BaseOptions().initialize()
 
-    dataset = load.img2img_dataset(path="~/Pictures/dataset/buddha")
-    image_paths =np.expand_dims(np.array(list(dataset.keys())), axis=1)
-    labels = np.expand_dims(np.array([dataset[_] for _ in dataset.keys()]), axis=1)
+    
 
     net = SimoSerra(args)
     net.create_graph(args)
-    feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
-    net.sess.run(net.enqueue_op, feed_dict=feed_dict)
-    img_batch, gt_batch = net.sess.run([net.image_batch, net.label_batch])
-    pred = net.sess.run(net.prediction)
-    loss = net.sess.run(net.loss)
-    pass
+    net.fit()
+    #
+    #net.sess.run(net.enqueue_op, feed_dict=feed_dict)
+    #img_batch, gt_batch = net.sess.run([net.image_batch, net.label_batch])
+    #pred = net.sess.run(net.prediction)
+    #loss = net.sess.run(net.loss)
+    #pass

@@ -48,6 +48,10 @@ def img2img_dataset(path, A_B_folder=["trainA", "trainB"], one_to_one=True,
     print('Dataset loading is complete.')
     return dataset
 
+def arbitrary_dataset(path, input_folder_names, output_folder_names, input_functions, output_functions):
+    path = os.path.expanduser(path)
+    
+
 def dataset_with_addtional_info(path, extensions=None, verbose=False):
     # TODO: Implement this dataload method
     dataset = []
