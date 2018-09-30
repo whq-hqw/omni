@@ -48,10 +48,20 @@ def img2img_dataset(path, A_B_folder=["trainA", "trainB"], one_to_one=True,
     print('Dataset loading is complete.')
     return dataset
 
-def arbitrary_dataset(path, input_folder_names, output_folder_names, input_functions, output_functions):
-    path = os.path.expanduser(path)
-    
+def number_to_char(num):
+    assert num >= 0 and num < 26, "Max 26 kind of input are supported."
+    return chr(num+65)
 
+def arbitrary_dataset(path, folder_names, functions):
+    dataset = {}
+    path = os.path.expanduser(path)
+    assert len(folder_names) is len(functions), "folder_names and functions should be same dimensions."
+    for i in range(len(folder_names)):
+        key = number_to_char(i)
+        value = functions[i](os.path.join(path, folder_names[i]))
+        dataset.update({key: value})
+    return dataset
+    
 def dataset_with_addtional_info(path, extensions=None, verbose=False):
     # TODO: Implement this dataload method
     dataset = []

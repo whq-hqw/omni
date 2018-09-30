@@ -8,7 +8,7 @@ from networks.train_op import build_train_op
 from options.BaseOptions import BaseOptions
 import numpy as np
 
-class SimoSerra():
+class SimoSerra_GAN():
     def __init__(self, args):
         self.opt = args
         
@@ -28,9 +28,10 @@ class SimoSerra():
 
     def build_model(self, args, network, loss_function):
         # 这里的network是一个函数形参数，一般是将网络结构的信息传递进来
-        self.prediction = network(self.image_batch, args)
+        self.I2I_prediction = network[0](self.image_batch, args)
+        self.gan_predinction = network[1](self.I2I_prediction)
         # 损失函数的计算
-        self.loss = loss_function(self.prediction, self.label_batch)
+        self.loss = loss_function(self.I2I_prediction, self.label_batch)
         # 设定根据损失函数进行优化的优化器
         self.train_op = build_train_op(self.loss, args.optimizer, args.learning_rate,
                                   tf.trainable_variables(), self.global_step)
@@ -45,7 +46,7 @@ class SimoSerra():
             # Data Load Graph
             self.image_batch, self.label_batch = load.data_load_graph(args, self.input_queue, self.output_shape)
             # Network Architecture and Train_op Graph
-            self.build_model(args, network=simoserra_net, loss_function=calculate_loss)
+            self.build_model(args, network=[simoserra_net, simoserra_gan], loss_function=calculate_loss)
             # Training Configuration
             if args.gpu_id is not None:
                 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
@@ -105,9 +106,7 @@ def simoserra_gan(input):
 if __name__ == "__main__":
     args = BaseOptions().initialize()
 
-    
-
-    net = SimoSerra(args)
+    net = SimoSerra_GAN(args)
     net.create_graph(args)
     net.fit()
     #
