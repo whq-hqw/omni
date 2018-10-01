@@ -58,7 +58,8 @@ def arbitrary_dataset(path, folder_names, functions):
     assert len(folder_names) is len(functions), "folder_names and functions should be same dimensions."
     for i in range(len(folder_names)):
         key = number_to_char(i)
-        value = functions[i](os.path.join(path, folder_names[i]))
+        arg = [os.path.join(path, _) for _ in folder_names[i]]
+        value = functions[i](arg)
         dataset.update({key: value})
     return dataset
     

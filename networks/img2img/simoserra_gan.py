@@ -3,6 +3,7 @@
 import os, random
 import tensorflow as tf
 import datasets.load_data as load
+import datasets.image_set as load_func
 import networks.blocks as block
 from networks.train_op import build_train_op
 from options.BaseOptions import BaseOptions
@@ -28,15 +29,23 @@ class SimoSerra_GAN():
         self.learning_rate = tf.placeholder(tf.float16, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
 
-    def build_model(self, args, network, loss_function):
+    def build_model(self, args):
         # 这里的network是一个函数形参数，一般是将网络结构的信息传递进来
-        self.I2I_prediction = network[0](self.image_batch, args)
-        self.gan_predinction = network[1](self.I2I_prediction)
+        self.I2I_prediction = simoserra_net(self.image_batch, args)
+        self.gan_predinction1 = simoserra_gan(self.I2I_prediction)
+        self.gan_predinction2 = simoserra_gan(self.label_batch, reuse=True)
+        self.gan_predinction3 = simoserra_gan(self.sketch_batch, reuse=True)
         # 损失函数的计算
-        self.loss = loss_function(self.I2I_prediction, self.label_batch)
+        self.g_loss, self.d_loss = calculate_loss(self.I2I_prediction, self.label_batch, self.gan_predinction1,
+                                                  self.gan_predinction2, self.gan_predinction3)
+        # 获取可训练的变量
+        vars_gen = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
+        vars_dis = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')
         # 设定根据损失函数进行优化的优化器
-        self.train_op = build_train_op(self.loss, args.optimizer, args.learning_rate,
-                                  tf.trainable_variables(), self.global_step)
+        self.train_op_gen = build_train_op(self.g_loss, args.optimizer, args.learning_rate,
+                                           vars_gen, self.global_step)
+        self.train_op_dis = build_train_op(self.d_loss, args.optimizer, args.learning_rate,
+                                           vars_dis, self.global_step)
         # Build the summary Tensor based on the TF collection of Summaries.
         self.summary = tf.summary.merge_all()
         # Create a saver for writing training checkpoints.
@@ -48,7 +57,7 @@ class SimoSerra_GAN():
             # Data Load Graph
             self.image_batch, self.label_batch = load.data_load_graph(args, self.input_queue, self.output_shape)
             # Network Architecture and Train_op Graph
-            self.build_model(args, network=[simoserra_net, simoserra_gan], loss_function=calculate_loss)
+            self.build_model(args)
             # Training Configuration
             if args.gpu_id is not None:
                 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
@@ -82,38 +91,62 @@ class SimoSerra_GAN():
 def load_data_function():
     pass
 
-def calculate_loss(prediction, ground_truth):
-    loss = tf.reduce_mean(tf.losses.mean_squared_error(ground_truth, prediction))
-    reg_loss = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-    total_loss = tf.add_n([loss] + reg_loss, name='total_loss')
-    tf.summary.scalar('total_loss', total_loss)
-    return total_loss
+def calculate_loss(prediction, ground_truth, gan1, gan2, gan3):
+    # MSE Loss
+    mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(ground_truth, prediction))
+    mse_reg_loss = tf.losses.get_regularization_losses(scope="generator")
+    g_loss = tf.add_n([mse_loss + mse_reg_loss], name="g_loss")
+    # GAN Loss
+    loss_G = -tf.reduce_mean(tf.log(gan1))
+    loss_D_1 = -tf.reduce_mean(tf.log(gan2) - tf.log(1 - gan1))
+    loss_D_2 = -tf.reduce_mean(tf.log(gan3))
+    gan_reg_loss = tf.losses.get_regularization_losses(scope="discriminator")
+    d_loss = tf.add_n([loss_G, loss_D_1, loss_D_2, gan_reg_loss], name="d_loss")
+    
+    tf.summary.scalar('generator_loss', g_loss)
+    tf.summary.scalar('discriminator_loss', d_loss)
+    return g_loss, d_loss
 
-def simoserra_net(input, args):
-    net = block.conv_block(input, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
-    net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3]*7,
-                           stride=[2, 1, 1, 1, 1, 1, 1])
-    net = block.conv_block(net, "block_4", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    net = block.conv_block(net, "block_5", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    net = block.conv_block(net, "block_6", filters=[48, 24, args.img_channel], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
+def simoserra_net(input, args, reuse=False):
+    with tf.variable_scope("generator"):
+        net = block.conv_block(input, name="block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3],
+                               stride=[2, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3],
+                               stride=[2, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256],
+                               kernel_sizes=[3]*7, stride=[2, 1, 1, 1, 1, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_4", filters=[256, 256, 128], kernel_sizes=[4, 3, 3],
+                               stride=[0.5, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_5", filters=[128, 128, 48], kernel_sizes=[4, 3, 3],
+                               stride=[0.5, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_6", filters=[48, 24, args.img_channel],
+                               kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1], reuse=reuse)
     return net
 
-def simoserra_gan(input):
-    net = block.conv_block(input, "gan_block1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
+def simoserra_gan(input, reuse=False):
+    with tf.variable_scope("discriminator"):
+        net = block.conv_block(input, name="gan_block1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3],
+                               stride=[2, 1, 1], reuse=reuse)
+        net = block.conv_block(net, name="block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3],
+                               stride=[2, 1, 1], reuse=reuse)
     return net
 
 
 if __name__ == "__main__":
+    dataset = load.arbitrary_dataset(path="~/Pictures/dataset/buddha",
+                                     folder_names=[("trainA", "trainB", "testA")],
+                                     functions=[load_func.load_path_from_folder])
+    
     args = BaseOptions().initialize()
 
     net = SimoSerra_GAN(args)
     net.create_graph(args)
-    net.fit()
-    #
-    #net.sess.run(net.enqueue_op, feed_dict=feed_dict)
-    #img_batch, gt_batch = net.sess.run([net.image_batch, net.label_batch])
-    #pred = net.sess.run(net.prediction)
-    #loss = net.sess.run(net.loss)
+    #net.fit()
+    
+    feed_dict={net.image_paths_placeholder: dataset["A"][0], net.ground_truth_placeholder: dataset["A"][1],
+               net.sketch_images_placeholder: dataset["A"][2]}
+    net.sess.run(net.enqueue_op, feed_dict=feed_dict)
+    img_batch, gt_batch = net.sess.run([net.image_batch, net.label_batch])
+    pred = net.sess.run(net.prediction)
+    loss = net.sess.run(net.loss)
     #pass
