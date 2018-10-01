@@ -17,11 +17,13 @@ class SimoSerra_GAN():
         # 以及输出什么样的数据(output_shape)
         self.image_paths_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string, name="image_paths")
         self.ground_truth_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string, name="ground_truth")
-        self.input_queue = tf.FIFOQueue(capacity=args.capacity, shapes=[(1,), (1,)],
-                                        dtypes=[tf.string, tf.string])
+        self.sketch_images_placeholder = tf.placeholder(shape=(None, 1), dtype=tf.string, name="sketch_paths")
+        self.input_queue = tf.FIFOQueue(capacity=args.capacity, shapes=[(1,), (1,), (1,)],
+                                        dtypes=[tf.string, tf.string, tf.string])
         self.enqueue_op = self.input_queue.enqueue_many([self.image_paths_placeholder,
-                                                         self.ground_truth_placeholder])
+                                                         self.ground_truth_placeholder, self.sketch_images_placeholder])
         self.output_shape = [(args.img_size, args.img_size, args.img_channel),
+                             (args.img_size, args.img_size, args.img_channel),
                              (args.img_size, args.img_size, args.img_channel)]
         self.learning_rate = tf.placeholder(tf.float16, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
