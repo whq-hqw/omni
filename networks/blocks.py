@@ -12,6 +12,7 @@ def conv_block(input, name, filters, kernel_sizes, stride=None, padding = "same"
         conv = input
     for _ in range(repeat):
         for i in range(len(filters)):
+            name = name + "_" + str(repeat) + "_" + str(i)
             if stride[i] >=1:
                 conv = tf.layers.conv2d(inputs=conv, filters=filters[i], kernel_size=kernel_sizes[i],
                                         strides=stride[i], padding=padding, activation=activation,
