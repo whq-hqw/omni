@@ -2,8 +2,10 @@
 
 import os, random
 import tensorflow as tf
+
 import datasets.load_data as load
 import networks.blocks as block
+import networks.utils as util
 from networks.train_op import build_train_op
 from options.BaseOptions import BaseOptions
 import numpy as np
@@ -23,7 +25,7 @@ class SimoSerra():
                                                          self.ground_truth_placeholder])
         self.output_shape = [(args.img_size, args.img_size, args.img_channel),
                              (args.img_size, args.img_size, args.img_channel)]
-        self.learning_rate = tf.placeholder(tf.float16, name="learning_rate")
+        self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
 
     def build_model(self, args, network, loss_function):
@@ -76,9 +78,6 @@ class SimoSerra():
             self.sess.run([self.image_batch, self.label_batch], feed_dict={})
 
 
-def load_data_function():
-    pass
-
 def calculate_loss(prediction, ground_truth):
     loss = tf.reduce_mean(tf.losses.mean_squared_error(ground_truth, prediction))
     reg_loss = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -96,23 +95,19 @@ def simoserra_net(input, args):
     net = block.conv_block(net, "block_6", filters=[48, 24, args.img_channel], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     return net
 
-def simoserra_gan(input):
-    net = block.conv_block(input, "gan_block1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
-    net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
-    return net
-
 
 if __name__ == "__main__":
     args = BaseOptions().initialize()
 
-    
+    dataset = load.img2img_dataset(path="~/Pictures/dataset/buddha")
+    image_paths = np.expand_dims(np.array(list(dataset.keys())), axis=1)
+    labels = np.expand_dims(np.array([dataset[_] for _ in dataset.keys()]), axis=1)
 
     net = SimoSerra(args)
     net.create_graph(args)
-    net.fit()
-    #
-    #net.sess.run(net.enqueue_op, feed_dict=feed_dict)
-    #img_batch, gt_batch = net.sess.run([net.image_batch, net.label_batch])
-    #pred = net.sess.run(net.prediction)
-    #loss = net.sess.run(net.loss)
-    #pass
+
+    feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
+    net.sess.run(net.enqueue_op, feed_dict=feed_dict)
+    img_batch, gt_batch, sketch_batch, line_batch = net.sess.run([net.image_batch, net.label_batch])
+    pred = net.sess.run(net.prediction)
+    loss = net.sess.run(net.loss)
