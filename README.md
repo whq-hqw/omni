@@ -2,8 +2,7 @@
 
 # Under Development
 
-Blueprint:
-A collection of tools which are able to create any neural networks on any datasets and perform training.
+We sincerely welcome contributors for this project.
 
-Recommanded usage:
-Implement ideas in research paper.
+Blueprint:
+Makes our life eaiser to implement arbitrary neural network on any arbitrary dataset.
