@@ -12,20 +12,20 @@ from options.BaseOptions import BaseOptions
 import numpy as np
 
 
-class SimoSerra:
+class SimoSerra_GAN:
     def __init__(self, args):
         self.opt = args
 
     def initialize(self):
         """
-        Here we defined a FIFO Queue tells the network what kind(shape, dtype) of data we are going to feed.
-            Placeholders, Input_queue, Enqueue_op
+        Here we will define an FIFOQueue defines what kind(shape, dtype) of data we are going to read.
+            i.e. Placeholders, Input_queue, Enqueue_op
 
         And what kind of the output is expected.
-            Output_shape
+            i.e. Output_shape
 
         DO NOT PLACE THIS IN THE __init__ METHOD,
-        OTHERWISE VARIABLES BELOW WILL BE DEFINED IN DIFFERENT GRAPH
+        OTHERWISE VARIABLES BELOW CANNOT BE DEFINED IN THE SANE GRAPH
         """
         #---------------------------------INPUT--------------------------------------
         # Budda 3D rendering Images(東京藝術大学, trainA)
@@ -50,29 +50,6 @@ class SimoSerra:
         # --------------------------------OTHERS--------------------------------------
         self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
-
-    def create_graph(self, args):
-        with tf.Graph().as_default():
-            self.initialize()
-            # Data Load Graph
-            print("Creating Data Load Graph...")
-            self.image_batch, self.label_batch, self.sketch_batch, self.line_batch = \
-                load.data_load_graph(args, self.input_queue, self.output_shape, [load.load_images]*4)
-            # Network Architecture and Train_op Graph
-            self.build_model(args)
-            # Training Configuration
-            if args.gpu_id is not None:
-                gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
-                self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-            else:
-                self.sess = tf.Session()
-            # TODO: Under development
-            # Initialize variables
-            self.sess.run(tf.global_variables_initializer())
-            self.sess.run(tf.local_variables_initializer())
-            # summary_writer = tf.summary.FileWriter(args.log_dir, self.sess.graph)
-            coord = tf.train.Coordinator()
-            tf.train.start_queue_runners(coord=coord, sess=self.sess)
 
     def build_model(self, args):
         # 这里的network是一个函数形参数，一般是将网络结构的信息传递进来
@@ -101,6 +78,34 @@ class SimoSerra:
         self.summary = tf.summary.merge_all()
         # Create a saver for writing training checkpoints.
         self.saver = tf.train.Saver(max_to_keep=3)
+
+    def create_graph(self, args):
+        """
+        Here we create the graph for the SimoSerra_GAN.
+        :param args: args from options/BaseOptions.py
+        :return:
+        """
+        with tf.Graph().as_default():
+            self.initialize()
+            # Data Load Graph
+            print("Creating Data Load Graph...")
+            self.image_batch, self.label_batch, self.sketch_batch, self.line_batch = \
+                load.data_load_graph(args, self.input_queue, self.output_shape, [load.load_images]*4)
+            # Network Architecture and Train_op Graph
+            self.build_model(args)
+            # Training Configuration
+            if args.gpu_id is not None:
+                gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
+                self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+            else:
+                self.sess = tf.Session()
+            # TODO: Under development
+            # Initialize variables
+            self.sess.run(tf.global_variables_initializer())
+            self.sess.run(tf.local_variables_initializer())
+            # summary_writer = tf.summary.FileWriter(args.log_dir, self.sess.graph)
+            coord = tf.train.Coordinator()
+            tf.train.start_queue_runners(coord=coord, sess=self.sess)
 
     def fit(self):
         """
@@ -196,7 +201,7 @@ if __name__ == "__main__":
 
     img, gt, sketch, lines = get_dataset()
 
-    net = SimoSerra(args)
+    net = SimoSerra_GAN(args)
     net.create_graph(args)
 
     feed_dict = {net.image_paths_placeholder: img, net.ground_truth_placeholder: gt,

@@ -5,6 +5,13 @@ import datasets.miscellaneous as misc
 
 
 def ilsvrc_dataset(path, extensions=("jpg", "jpeg", "JPG", "png", "PNG", "bmp", "BMP"), verbose=False):
+    """
+    load all the path of an typical image recognition dataset. e.g. ILSVRC
+    :param path: path of the dataset root
+    :param extensions: extentions that you treat them as the images.
+    :param verbose: display the detail of the process
+    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
+    """
     dataset = {}
     path = os.path.expanduser(path)
     classes = os.listdir(path)
@@ -19,6 +26,15 @@ def ilsvrc_dataset(path, extensions=("jpg", "jpeg", "JPG", "png", "PNG", "bmp", 
 
 def img2img_dataset(path, A_B_folder=("trainA", "trainB"), one_to_one=True,
                         extensions=("jpg", "jpeg", "JPG", "png", "PNG", "bmp", "BMP"), verbose=False):
+    """
+    Load all the path of an typical image-to-image translation dataset
+    :param path: path of the dataset root
+    :param A_B_folder:
+    :param one_to_one: if the A & B folder is one-to-one correspondence
+    :param extensions: extentions that you treat them as the images.
+    :param verbose: display the detail of the process
+    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
+    """
     dataset = {}
     path = os.path.expanduser(path)
     assert len(A_B_folder) == 2, "A_B_folder should be the name of source and target folder."
@@ -47,6 +63,14 @@ def img2img_dataset(path, A_B_folder=("trainA", "trainB"), one_to_one=True,
     return dataset
 
 def arbitrary_dataset(path, folder_names, data_load_funcs, dig_level=None):
+    """
+    Load a dataset with arbitrary form, and return a dictionary
+    :param path: dataset's root folder
+    :param folder_names: all the sub-folders or files you want to read(correspond to data_load_funcs)
+    :param data_load_funcs: the way you treat your sub-folders and files(correspond to folder_names)
+    :param dig_level: how deep you want the folders to find when
+    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
+    """
     dataset = {}
     path = os.path.expanduser(path)
     assert len(folder_names) is len(data_load_funcs), "folder_names and functions should be same dimensions."
@@ -108,5 +132,5 @@ def data_load_graph(args, input_queue, output_shape, functions):
 
 if __name__ == "__main__":
     dataset = arbitrary_dataset(path="~/Pictures/dataset/buddha",
-                                     folder_names=[("trainA", "trainB", "testA", "testB")],
-                                     functions=[misc.load_path_from_folder], dig_level=[0, 0, 0, 0])
+                                folder_names=[("trainA", "trainB", "testA", "testB")],
+                                data_load_funcs=[misc.load_path_from_folder], dig_level=[0, 0, 0, 0])
