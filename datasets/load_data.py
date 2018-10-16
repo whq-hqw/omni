@@ -1,95 +1,21 @@
 import tensorflow as tf
-import numpy as np
-import os
-import datasets.miscellaneous as misc
-
-
-def ilsvrc_dataset(path, extensions=("jpg", "jpeg", "JPG", "png", "PNG", "bmp", "BMP"), verbose=False):
-    """
-    load all the path of an typical image recognition dataset. e.g. ILSVRC
-    :param path: path of the dataset root
-    :param extensions: extentions that you treat them as the images.
-    :param verbose: display the detail of the process
-    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
-    """
-    dataset = {}
-    path = os.path.expanduser(path)
-    classes = os.listdir(path)
-    classes = [cls for cls in classes if os.path.isdir(os.path.join(path, cls))]
-    for i, cls in enumerate(classes):
-        if verbose:
-            print('Loading {}th {} class.'.format(i, cls))
-        dataset.update({cls: [_ for _ in os.listdir(os.path.join(path, cls)) if
-                    misc.extension_check(_, extensions)]})
-    print("Dataset loading is complete.")
-    return dataset
-
-def img2img_dataset(path, A_B_folder=("trainA", "trainB"), one_to_one=True,
-                        extensions=("jpg", "jpeg", "JPG", "png", "PNG", "bmp", "BMP"), verbose=False):
-    """
-    Load all the path of an typical image-to-image translation dataset
-    :param path: path of the dataset root
-    :param A_B_folder:
-    :param one_to_one: if the A & B folder is one-to-one correspondence
-    :param extensions: extentions that you treat them as the images.
-    :param verbose: display the detail of the process
-    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
-    """
-    dataset = {}
-    path = os.path.expanduser(path)
-    assert len(A_B_folder) == 2, "A_B_folder should be the name of source and target folder."
-    source = os.path.join(path, A_B_folder[0])
-    target = os.path.join(path, A_B_folder[1])
-    assert os.path.isdir(source) and os.path.isdir(target), "one of the folder does not exist."
-    if one_to_one:
-        source_imgs = [os.path.join(path, A_B_folder[0], _) for _ in os.listdir(source)
-                       if misc.extension_check(_, extensions)]
-        target_imgs = [os.path.join(path, A_B_folder[1], _) for _ in os.listdir(target)
-                       if misc.extension_check(_, extensions)]
-        if verbose: print("Sorting files...")
-        source_imgs.sort()
-        target_imgs.sort()
-        if verbose: print("Sorting completed.")
-        assert len(source_imgs) == len(target_imgs)
-        for i in range(len(source_imgs)):
-            if verbose and i % 100 == 0:
-                print("{} samples has been loaded...".format(i))
-            dataset.update({target_imgs[i]: source_imgs[i]})
-    else:
-        dataset.update({"A": [os.path.join(path, _) for _ in os.listdir(source) if misc.extension_check(_, extensions)]})
-        dataset.update({"B": [os.path.join(path, _) for _ in os.listdir(target) if misc.extension_check(_, extensions)]})
-        #dataset.append([Sample(label="B", path=_) for _ in os.listdir(target) if extension_check(_, extensions)])
-    print('Dataset loading is complete.')
-    return dataset
-
-def arbitrary_dataset(path, folder_names, data_load_funcs, dig_level=None):
-    """
-    Load a dataset with arbitrary form, and return a dictionary
-    :param path: dataset's root folder
-    :param folder_names: all the sub-folders or files you want to read(correspond to data_load_funcs)
-    :param data_load_funcs: the way you treat your sub-folders and files(correspond to folder_names)
-    :param dig_level: how deep you want the folders to find when
-    :return: a dataset in the form of dict {'A':[...], 'B':[...], ...}
-    """
-    dataset = {}
-    path = os.path.expanduser(path)
-    assert len(folder_names) is len(data_load_funcs), "folder_names and functions should be same dimensions."
-    for i in range(len(folder_names)):
-        key = misc.number_to_char(i)
-        arg = [os.path.join(path, _) for _ in folder_names[i]]
-        try:
-            value = data_load_funcs[i](arg, dig_level[i])
-        except (TypeError, IndexError):
-            value = data_load_funcs[i](arg)
-        dataset.update({key: value})
-    return dataset
 
 def load_images(args, paths, seed):
     images = []
     for path in tf.unstack(paths):
         img_byte = tf.read_file(path)
         image = tf.image.decode_image(img_byte)
-        # TODO: Image Augumentation
+        if args.do_affine:
+            # TODO: Add args... to BaseOptions.py
+            affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
+                                     rotation=args.rotation, project=args.projects, mean=args.imgaug_mean,
+                                     stddev=args.imgaug_stddev, order=args.imgaug_order)
+            affine_mat = affine.to_transform_matrix()
+            image = tf.contrib.image.transform(image, affine_mat)
+        if args.random_brightness:
+            # TODO: Add args... to BaseOptions.py
+            image = tf.image.random_brightness(image, max_delta=args.imgaug_max_delta)
+        # TODO: Apply Gaussian Noise
         if args.random_crop:
             image = tf.random_crop(image, [args.img_size, args.img_size, 3], seed=seed)
         else:
@@ -101,36 +27,97 @@ def load_images(args, paths, seed):
         images.append(tf.image.per_image_standardization(image))
     return images
 
-def data_load_graph(args, input_queue, output_shape, functions):
-    cell = []
-    for _ in range(args.threads):
-        seed = np.random.randint(4096)
-        print("data_load_graph random seed:{}".format(seed))
-        dequeue_obj = input_queue.dequeue()
-        #
-        core=[]
-        for i, paths in enumerate(dequeue_obj):
-            try:
-                load_func = functions[i]
-            except (TypeError, IndexError):
-                load_func = load_images
-            data = load_func(args, paths, seed)
-            core.append(data)
-            cell.append(core)
-    # The actual shape of cell is:
-    #    [cell:  (core numbers = args.threads)
-    #       [core_01: [data_01], [data_02], ......],
-    #       [core_02: [data_01], [data_02], ......],
-    #       ......
-    #   ]
-    #    Where data_01 and data_02 can be arbitrary shapes
-    output_batch = tf.train.batch_join(cell, batch_size=args.batch_size,
-                                               capacity=4 * args.batch_size * args.threads,
-                                               shapes=output_shape,
-                                               enqueue_many=True, allow_smaller_final_batch=True)
-    return output_batch
+class AffineTransform():
+    """
+    Transformation Matrix for 2D and 3D
+    https://www.mathworks.com/help/images/matrix-representation-of-geometric-transformations.html
+    """
+    def __init__(self, translation, scale,  shear, rotation, project,
+                 custom=None, mean=1, stddev=0.2, order="random"):
+        self.order = order
+        self.matrices = {
+            "translation": translation(translation, mean, stddev),
+            "scale": scale(scale, mean, stddev),
+            "shear": shear(shear, mean, stddev),
+            "rotation": rotation(rotation, mean, stddev),
+            "project": project(project, mean, stddev)
+        }
+        if custom:
+            assert type(custom) is list and len(custom) is 8, \
+                "custom tranformation matrix setting error"
+            self.matrices.update({"custom": tf.constant(custom, dtype=tf.float32)})
+
+    @staticmethod
+    def translation(trans, mean, stddev):
+        """Generate the translation matrix with a little noise."""
+        if trans is None:
+            return None
+        assert len(trans) is 2, "translation setting error"
+        base_mat = tf.constant([1, 0, 0, 0, 1, 0, trans[0], trans[1]], dtype=tf.float32)
+        rand = tf.random_normal(shape=[8], mean=mean, stddev=stddev)
+        mask = tf.constant([0,0,0,0,0,0,1,1], dtype=tf.float32)
+        return tf.multiply(base_mat,tf.multiply(rand, mask))
+
+    @staticmethod
+    def scale(scale, mean, stddev):
+        """Generate the scale matrix with a little noise."""
+        if scale is None:
+            return None
+        assert len(scale) is 2, "scale setting error"
+        base_mat = tf.constant([scale[0], 0, 0, 0, scale[1], 0, 0, 0], dtype=tf.float32)
+        rand = tf.random_normal(shape=[8], mean=mean, stddev=stddev)
+        mask = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], dtype=tf.float32)
+        return tf.multiply(base_mat, tf.multiply(rand, mask))
+
+    @staticmethod
+    def shear(shear, mean, stddev):
+        """Generate the shear matrix with a little noise."""
+        if shear is None:
+            return None
+        assert len(shear) is 2, "shear setting error"
+        base_mat = tf.constant([1, shear[0], 0, shear[1], 1, 0, 0, 0], dtype=tf.float32)
+        rand = tf.random_normal(shape=[8], mean=mean, stddev=stddev)
+        mask = tf.constant([0, 1, 0, 1, 0, 0, 0, 0], dtype=tf.float32)
+        return tf.multiply(base_mat, tf.multiply(rand, mask))
+
+    @staticmethod
+    def rotation(rot, mean, stddev):
+        """Generate the rotation matrix with a little noise."""
+        if rot is None:
+            return None
+        assert len(rot) is 1, "rotation setting error"
+        rand = tf.random_normal(shape=[1], mean=mean, stddev=stddev)
+        rot = tf.multiply(tf.constant(rot, dtype=tf.float32), rand)
+        return tf.constant([tf.cos(rot[0]), tf.sin(rot[0]), 0, -tf.sin(rot[0]), tf.cos(rot[0]), 0, 0, 0],
+                           dtype=tf.float32)
+
+    @staticmethod
+    def project(project, mean, stddev):
+        """Generate the projective matrix with a little noise."""
+        if project is None:
+            return None
+        assert len(project) is 2, "project setting error"
+        base_mat = tf.constant([1, 0, project[0], 0, 1, project[1], 0, 0], dtype=tf.float32)
+        rand = tf.random_normal(shape=[8], mean=mean, stddev=stddev)
+        mask = tf.constant([0, 0, 1, 0, 0, 1, 0, 0], dtype=tf.float32)
+        return tf.multiply(base_mat, tf.multiply(rand, mask))
+
+    def to_transform_matrix(self):
+        if self.order is "random":
+            values = tf.random_shuffle(list(self.matrices.values()))
+        elif type(self.order) is list:
+            # TODO: Think about when length of self.order is not equal to self.matrices
+            values = [self.matrices[key] for key in self.matrices]
+        else:
+            values = [self.matrices[key] for key in self.matrices]
+        return tf.concat(values)
+
 
 if __name__ == "__main__":
-    dataset = arbitrary_dataset(path="~/Pictures/dataset/buddha",
+
+    import datasets
+    import datasets.miscellaneous as misc
+
+    dataset = datasets.arbitrary_dataset(path="~/Pictures/dataset/buddha",
                                 folder_names=[("trainA", "trainB", "testA", "testB")],
                                 data_load_funcs=[misc.load_path_from_folder], dig_level=[0, 0, 0, 0])
