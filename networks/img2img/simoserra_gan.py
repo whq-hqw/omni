@@ -1,15 +1,14 @@
 # coding=utf-8
 
-import os, random
+import random
 import tensorflow as tf
-
-import datasets.load_data as load
-import datasets.miscellaneous as misc
+import numpy as np
+import datasets
+import datasets.data_loader as loader
 import networks.blocks as block
 import networks.utils as util
 from networks.train_op import build_train_op
 from options.BaseOptions import BaseOptions
-import numpy as np
 
 
 class SimoSerra_GAN:
@@ -90,7 +89,7 @@ class SimoSerra_GAN:
             # Data Load Graph
             print("Creating Data Load Graph...")
             self.image_batch, self.label_batch, self.sketch_batch, self.line_batch = \
-                load.data_load_graph(args, self.input_queue, self.output_shape, [load.load_images]*4)
+                datasets.data_load_graph(args, self.input_queue, self.output_shape, [loader.load_images]*4)
             # Network Architecture and Train_op Graph
             self.build_model(args)
             # Training Configuration
@@ -130,9 +129,9 @@ class SimoSerra_GAN:
 
 def get_dataset(opt):
     # 其中opt,path 就是args.path/--path 中的输入的数据集的所在位置
-    dataset = load.arbitrary_dataset(path=opt.path,
-                                     folder_names=[("trainA", "trainB", "gan_A", "gan_B")],
-                                     data_load_funcs=[misc.load_path_from_folder], dig_level=[0, 0, 0, 0])
+    dataset = datasets.arbitrary_dataset(path=opt.path,
+                                     children=[("trainA", "trainB", "gan_A", "gan_B")],
+                                     data_load_funcs=[loader.load_path_from_folder], dig_level=[0, 0, 0, 0])
     # 获取4个文件夹中拥有图片最多的文件夹的图片数量
     dim = max(len(dataset["A"][0]), len(dataset["A"][1]), len(dataset["A"][2]), len(dataset["A"][3]))
     # 使文件夹"trainA"，"trainB" 中的图片路径能够一一对应

@@ -1,39 +1,12 @@
 import tensorflow as tf
 
-def load_images(args, paths, seed):
-    images = []
-    for path in tf.unstack(paths):
-        img_byte = tf.read_file(path)
-        image = tf.image.decode_image(img_byte)
-        if args.do_affine:
-            # TODO: Add args... to BaseOptions.py
-            affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
-                                     rotation=args.rotation, project=args.projects, mean=args.imgaug_mean,
-                                     stddev=args.imgaug_stddev, order=args.imgaug_order)
-            affine_mat = affine.to_transform_matrix()
-            image = tf.contrib.image.transform(image, affine_mat)
-        if args.random_brightness:
-            # TODO: Add args... to BaseOptions.py
-            image = tf.image.random_brightness(image, max_delta=args.imgaug_max_delta)
-        # TODO: Apply Gaussian Noise
-        if args.random_crop:
-            image = tf.random_crop(image, [args.img_size, args.img_size, 3], seed=seed)
-        else:
-            image = tf.image.resize_image_with_crop_or_pad(image, args.img_size, args.img_size)
-        if args.random_flip:
-            image = tf.image.random_flip_left_right(image, seed=seed)
-
-        image.set_shape((args.img_size, args.img_size, 3))
-        images.append(tf.image.per_image_standardization(image))
-    return images
-
 class AffineTransform():
     """
-    Transformation Matrix for 2D and 3D
+    Generate 2D affine transformation matrix
     https://www.mathworks.com/help/images/matrix-representation-of-geometric-transformations.html
     """
     def __init__(self, translation, scale,  shear, rotation, project,
-                 custom=None, mean=1, stddev=0.2, order="random"):
+                 custom=None, mean=0, stddev=0.1, order="random"):
         self.order = order
         self.matrices = {
             "translation": translation(translation, mean, stddev),
@@ -44,7 +17,7 @@ class AffineTransform():
         }
         if custom:
             assert type(custom) is list and len(custom) is 8, \
-                "custom tranformation matrix setting error"
+                "custom transformation matrix setting error"
             self.matrices.update({"custom": tf.constant(custom, dtype=tf.float32)})
 
     @staticmethod
@@ -111,13 +84,3 @@ class AffineTransform():
         else:
             values = [self.matrices[key] for key in self.matrices]
         return tf.concat(values)
-
-
-if __name__ == "__main__":
-
-    import datasets
-    import datasets.miscellaneous as misc
-
-    dataset = datasets.arbitrary_dataset(path="~/Pictures/dataset/buddha",
-                                folder_names=[("trainA", "trainB", "testA", "testB")],
-                                data_load_funcs=[misc.load_path_from_folder], dig_level=[0, 0, 0, 0])
