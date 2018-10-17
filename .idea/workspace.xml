@@ -7,19 +7,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4f99d7d2-6db7-4816-96ef-7e7f1f887b70" name="Default" comment="new">
-      <change afterPath="$PROJECT_DIR$/datasets/code_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/datasets/data_loader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/networks/recognition/mnist.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tmp.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/arbitrary.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/ilsvrc.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/img2img.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/load_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/affine_transform.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/miscellaneous.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/miscellaneous.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/networks/img2img/simoserra_gan.py" beforeDir="false" afterPath="$PROJECT_DIR$/networks/img2img/simoserra_gan.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/options/BaseOptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/options/BaseOptions.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -54,6 +43,7 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
+          <entry key="LICENSE" value="1" />
           <entry key="_bootstrap&gt;" value="2" />
           <entry key="py" value="74" />
           <entry key="txt" value="1" />
@@ -61,13 +51,14 @@
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="PLAIN_TEXT" value="1" />
+          <entry key="PLAIN_TEXT" value="2" />
           <entry key="PyRemoteDebug" value="4" />
           <entry key="Python" value="72" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
+          <entry key="LICENSE" value="26" />
           <entry key="Python Console" value="677" />
           <entry key="dummy" value="55" />
           <entry key="py" value="19795" />
@@ -76,7 +67,7 @@
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="PLAIN_TEXT" value="58" />
+          <entry key="PLAIN_TEXT" value="84" />
           <entry key="Python" value="20472" />
         </counts>
       </usages-collector>
@@ -88,7 +79,7 @@
         <entry file="file://$PROJECT_DIR$/networks/img2img/simoserra_gan.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="385">
-              <caret line="91" column="107" lean-forward="true" selection-start-line="91" selection-start-column="107" selection-end-line="91" selection-end-column="107" />
+              <caret line="91" column="107" selection-start-line="91" selection-start-column="107" selection-end-line="91" selection-end-column="107" />
               <folding>
                 <element signature="e#16#29#0" expanded="true" />
               </folding>
@@ -112,7 +103,7 @@
         <entry file="file://$PROJECT_DIR$/datasets/data_loader.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="476">
-              <caret line="43" column="35" lean-forward="true" selection-start-line="43" selection-start-column="35" selection-end-line="43" selection-end-column="35" />
+              <caret line="43" column="35" selection-start-line="43" selection-start-column="35" selection-end-line="43" selection-end-column="35" />
               <folding>
                 <element signature="e#1#12#0" expanded="true" />
                 <marker date="1539763608488" expanded="true" signature="1969:2024" ph="..." />
@@ -130,14 +121,23 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tmp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="544">
-              <caret line="32" column="23" lean-forward="true" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
+            <state relative-caret-position="102">
+              <caret line="6" column="24" selection-start-line="6" selection-start-column="24" selection-end-line="6" selection-end-column="24" />
               <folding>
                 <element signature="e#1#10#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/LICENSE">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <caret column="26" selection-start-column="26" selection-end-column="26" />
             </state>
           </provider>
         </entry>
@@ -242,6 +242,7 @@
         <option value="$PROJECT_DIR$/datasets/__init__.py" />
         <option value="$PROJECT_DIR$/tmp.py" />
         <option value="$PROJECT_DIR$/datasets/data_loader.py" />
+        <option value="$PROJECT_DIR$/LICENSE" />
       </list>
     </option>
   </component>
@@ -971,7 +972,7 @@
     <entry file="file://$PROJECT_DIR$/networks/img2img/simoserra_gan.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="385">
-          <caret line="91" column="107" lean-forward="true" selection-start-line="91" selection-start-column="107" selection-end-line="91" selection-end-column="107" />
+          <caret line="91" column="107" selection-start-line="91" selection-start-column="107" selection-end-line="91" selection-end-column="107" />
           <folding>
             <element signature="e#16#29#0" expanded="true" />
           </folding>
@@ -991,7 +992,7 @@
     <entry file="file://$PROJECT_DIR$/datasets/data_loader.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="476">
-          <caret line="43" column="35" lean-forward="true" selection-start-line="43" selection-start-column="35" selection-end-line="43" selection-end-column="35" />
+          <caret line="43" column="35" selection-start-line="43" selection-start-column="35" selection-end-line="43" selection-end-column="35" />
           <folding>
             <element signature="e#1#12#0" expanded="true" />
             <marker date="1539763608488" expanded="true" signature="1969:2024" ph="..." />
@@ -1011,11 +1012,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tmp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="544">
-          <caret line="32" column="23" lean-forward="true" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
+        <state relative-caret-position="102">
+          <caret line="6" column="24" selection-start-line="6" selection-start-column="24" selection-end-line="6" selection-end-column="24" />
           <folding>
             <element signature="e#1#10#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/LICENSE">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="26" selection-start-column="26" selection-end-column="26" />
         </state>
       </provider>
     </entry>
