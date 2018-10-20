@@ -1,7 +1,7 @@
 import os, random
 import tensorflow as tf
 import networks.blocks as block
-import datasets.load_data as load
+import data.load_data as load
 from networks.train_op import build_train_op
 
 class Resnet():

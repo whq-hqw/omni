@@ -3,7 +3,7 @@
 import os, random
 import tensorflow as tf
 
-import datasets.load_data as load
+import data.load_data as load
 import networks.blocks as block
 import networks.utils as util
 from networks.train_op import build_train_op
