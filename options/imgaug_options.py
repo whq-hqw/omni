@@ -17,18 +17,18 @@ class ImgAug:
                                  help="do random translation on image or not")
         self.parser.add_argument("--random_brightness", type=bool, default=True,
                                  help="adjust brightness on image")
-        self.parser.add_argument("--random_noise", type=bool, default=True,
+        self.parser.add_argument("--random_noise", type=bool, default=False,
                                  help="apply random gaussian noise on image")
     
-        self.parser.add_argument("--translation", type=list,
+        self.parser.add_argument("--translation", type=list, default=[10, 10],
                                  help="a list of two elements indicate translation on x and y axis")
-        self.parser.add_argument("--scale", type=list,
+        self.parser.add_argument("--scale", type=list, default=[2, 2],
                                  help="a list of two elements indicate scale on x and y axis")
-        self.parser.add_argument("--shear", type=list,
+        self.parser.add_argument("--shear", type=list, default=[2, 2],
                                  help="a list of two elements indicate shear on x and y axis")
-        self.parser.add_argument("--rotation", type=float,
+        self.parser.add_argument("--rotation", type=float, default=[5.0],
                                  help="a number indicate rotation of image")
-        self.parser.add_argument("--project", type=list,
+        self.parser.add_argument("--project", type=list, default=[2, 2],
                                  help="a list of two elements indicate projection on x and y axis")
         self.parser.add_argument("--custom", type=list,
                                  help="a list of 8 element represent a custom transform matrix")
@@ -38,6 +38,7 @@ class ImgAug:
                                  help="mean of random coefficiency of translation")
         self.parser.add_argument("--imgaug_stddev", type=float, default=0.2,
                                  help="standard deviation of random coefficiency of translation")
-        self.parser.add_argument("--imgaug_order", type=str, default="random",
-                                 help="standard deviation of random coefficiency of translation")
-
+        self.parser.add_argument("--imgaug_order", type=list, default=[],
+                                 help="the order of combining transformation matrix")
+        self.parser.add_argument("--imgaug_crop_bbox", type=bool, default=False,
+                                 help="crop the bound box from image or not")

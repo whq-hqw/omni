@@ -6,7 +6,7 @@ class AffineTransform():
     https://www.mathworks.com/help/images/matrix-representation-of-geometric-transformations.html
     """
     def __init__(self, translation, scale,  shear, rotation, project,
-                 custom=None, mean=0, stddev=0.1, order="random"):
+                 custom=None, mean=0.0, stddev=0.1, order=[]):
         self.order = order
         self.matrices = {
             "translation": self._translation(translation, mean, stddev),

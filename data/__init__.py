@@ -3,17 +3,20 @@ import tensorflow as tf
 from data.affine_transform import AffineTransform
 import data.miscellaneous as misc
 
-def create_batch_from_queue(args, input_queue, output_shape, functions, dtypes):
+def create_batch_from_queue(args, input_queue, output_shape, functions,
+                            dtypes=None):
     cell = []
     for _ in range(args.threads):
         # Create multi-thread loading processes
         dequeue_obj = input_queue.dequeue()
+        if type(dequeue_obj) is not list:
+            dequeue_obj = [dequeue_obj]
         core=[]
-        for i, component in enumerate(tf.unstack(dequeue_obj)):
+        for i, component in enumerate(dequeue_obj):
             load_func = functions[i]
             # load data based on paths, load_func are defined below
             # or defined specifically in the network
-            data = load_func(args, component, dtypes[i])
+            data = load_func(args, component)
             core.append(data)
         cell.append(core)
     # The actual shape of cell is:
@@ -31,7 +34,7 @@ def create_batch_from_queue(args, input_queue, output_shape, functions, dtypes):
     return output_batch
 
 
-def load_images(args, paths, dtype):
+def load_images(args, paths):
     # TODO: maybe we can use **options here to accept more parameters for flexibility
     images = []
     for path in tf.unstack(paths):
@@ -39,34 +42,51 @@ def load_images(args, paths, dtype):
         image = tf.image.decode_image(img_byte)
 
         # --------------------------------Image Augmentation--------------------------------
-        if args.do_affine:
-            affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
-                                     rotation=args.rotation, project=args.project, mean=args.imgaug_mean,
-                                     stddev=args.imgaug_stddev, order=args.imgaug_order)
-            affine_mat = affine.to_transform_matrix()
-            image = tf.contrib.image.transform(image, affine_mat)
         if args.random_brightness:
             image = tf.image.random_brightness(image, max_delta=args.imgaug_max_delta)
-        # TODO: random contrast, random blur
-        if args.random_noise:
-            noise = tf.add(tf.random_normal(shape=tf.shape(image), mean=args.imgaug_mean,
-                                            stddev=args.imgaug_stddev), 1)
-            image = tf.matmul(image, noise)
+        # TODO: random contrast, random blur, crop_bbox
         if args.random_crop:
             image = tf.random_crop(image, [args.img_size, args.img_size, 3])
         else:
             image = tf.image.resize_image_with_crop_or_pad(image, args.img_size, args.img_size)
         if args.random_flip:
             image = tf.image.random_flip_left_right(image)
-        # --------------------------------Image Augmentation--------------------------------
-
+        
         image.set_shape((args.img_size, args.img_size, 3))
-        images.append(tf.image.per_image_standardization(image))
+        """
+        if args.do_affine:
+            #Due to tf.contrib.image.transform cannot being used when the rank of image is not clear,
+            #place it before will raise TypeError: image_or_images rank must be statically known.
+            affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
+                                     rotation=args.rotation, project=args.project, mean=args.imgaug_mean,
+                                     stddev=args.imgaug_stddev)
+            affine_mat = affine.to_transform_matrix()
+            image = tf.contrib.image.transform(image, affine_mat)
+        """
+        image = tf.image.per_image_standardization(image)
+
+        if args.random_noise:
+            #After per_image_standardization, image dtype becomes tf.float32
+            #Then we can add some random noise
+            noise = tf.add(tf.random_normal(shape=tf.shape(image), mean=args.imgaug_mean,
+                                            stddev=args.imgaug_stddev), 1)
+            image = tf.multiply(image, noise)
+        # --------------------------------Image Augmentation--------------------------------
+        if args.do_affine:
+            # Due to tf.contrib.image.transform cannot being used when the rank of image is not clear,
+            # place it before will raise TypeError: image_or_images rank must be statically known.
+            affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
+                                     rotation=args.rotation, project=args.project, mean=args.imgaug_mean,
+                                     stddev=args.imgaug_stddev)
+            affine_mat = affine.to_transform_matrix()
+            image = tf.contrib.image.transform(image, affine_mat)
+        images.append(image)
     return images
 
-def pass_it(args, input, dtype):
+
+def pass_it(args, input):
     # TODO: maybe we can use **options here to accept more parameters for flexibility
-    data = []
-    for datum in tf.unstack(input):
-        data.append(tf.constant(datum, dtype=dtype))
-    return data
+    #data = []
+    #for datum in tf.unstack(input):
+    #    data.append(datum)
+    return input

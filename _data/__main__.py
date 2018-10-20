@@ -15,6 +15,8 @@ def load_path_from_csv(len, paths, dig_level=None):
     name = []
     bbox = []
     # sometimes one csv file are correspond to one image file
+    if type(paths) is str:
+        paths = [paths]
     for path in paths:
         with open(path, "r") as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
@@ -27,6 +29,10 @@ def load_path_from_csv(len, paths, dig_level=None):
     return {key_name:name, key_bbox: bbox}
 
 def load_easy():
+    """
+    Load a csv file contains boundbox infomation
+    :return:
+    """
     args = BaseOptions().initialize()
     
     dataset = loader.arbitrary_dataset(path=os.path.expanduser(args.path),
@@ -44,7 +50,7 @@ def load_easy():
 
     output_shape = [(4,)]
     
-    batch = data.create_batch_from_queue(args, input_queue, output_shape, [data.pass_it], [tf.int32])
+    batch = data.create_batch_from_queue(args, input_queue, output_shape, [data.pass_it], [None])
 
     feed_dict = {gpu_bbox_placeholder: bboxes}
     sess.run(enqueue_op, feed_dict=feed_dict)
@@ -69,12 +75,12 @@ def load_1():
     output_shape = [(100, 100, 3), (100, 100, 3), (100, 100, 3), (4,), (3,)]
     
     gpu_batch, cpu_batch, iris_batch, gpu_bbox_batch, cpu_label_batch, iris_bbox_batch = \
-        data.data_load_graph(args, input_queue, output_shape, [loader.load_images] * 3 + [])
+        data.create_batch_from_queue(args, input_queue, output_shape, [data.load_images] * 3 + [])
     
-    dataset = data.arbitrary_dataset(path="~/Pictures/dataset1",
-                                     children=[("child1", "child2", "child3", "annotation/child1_bbox.txt",
+    dataset = loader.arbitrary_dataset(path="~/Pictures/dataset1",
+                                     sources=[("child1", "child2", "child3", "annotation/child1_bbox.txt",
                                                 "annotation/child2.xml", "annotation/child2_bbox.mat")],
-                                     data_load_funcs=[loader.load_path_from_folder] * 3, dig_level=[0, 0, 0, 0, 0, 0])
+                                     modes=[loader.load_path_from_folder] * 3, dig_level=[0, 0, 0, 0, 0, 0])
     
 
 if __name__ == "__main__":

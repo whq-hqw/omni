@@ -171,7 +171,7 @@ def simoserra_net(input, args, reuse=False):
     https://esslab.jp/~ess/publications/SimoSerraSIGGRAPH2016.pdf
     """
     with tf.variable_scope("generator"):
-        net = block.conv_block(input, name="block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3],
+        net = block.conv_block(net, name="block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3],
                                stride=[2, 1, 1], reuse=reuse)
         net = block.conv_block(net, name="block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3],
                                stride=[2, 1, 1], reuse=reuse)

@@ -1,14 +1,18 @@
 #coding=utf-8
 
 import os, random
-import tensorflow as tf
 
-import data.load_data as load
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+import data
+import data.data_loader as loader
 import networks.blocks as block
 import networks.utils as util
 from networks.train_op import build_train_op
-from options.BaseOptions import BaseOptions
-import numpy as np
+from options.base_options import BaseOptions
+
 
 class SimoSerra():
     def __init__(self, args):
@@ -25,6 +29,11 @@ class SimoSerra():
                                                          self.ground_truth_placeholder])
         self.output_shape = [(args.img_size, args.img_size, args.img_channel),
                              (args.img_size, args.img_size, args.img_channel)]
+        self.image_batch, self.label_batch = data.create_batch_from_queue(args, self.input_queue,
+                                                                          self.output_shape,
+                                                                          functions=[data.load_images] * 2,
+                                                                          dtypes=[None] * 2)
+        
         self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
         self.global_step = tf.Variable(0, trainable=False)
 
@@ -44,8 +53,6 @@ class SimoSerra():
     def create_graph(self, args):
         with tf.Graph().as_default():
             self.initialize()
-            # Data Load Graph
-            self.image_batch, self.label_batch = load.data_load_graph(args, self.input_queue, self.output_shape)
             # Network Architecture and Train_op Graph
             self.build_model(args, network=simoserra_net, loss_function=calculate_loss)
             # Training Configuration
@@ -62,7 +69,7 @@ class SimoSerra():
             tf.train.start_queue_runners(coord=coord, sess=self.sess)
 
     def fit(self):
-        dataset = load.img2img_dataset(path=self.opt.path)
+        dataset = loader.img2img_dataset(path=self.opt.path)
         image_paths = np.expand_dims(np.array(list(dataset.keys())), axis=1)
         labels = np.expand_dims(np.array([dataset[_] for _ in dataset.keys()]), axis=1)
         feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
@@ -97,9 +104,12 @@ def simoserra_net(input, args):
 
 
 if __name__ == "__main__":
+    """
+        Test code of img2img dataset loading
+    """
     args = BaseOptions().initialize()
 
-    dataset = load.img2img_dataset(path="~/Pictures/dataset/buddha")
+    dataset = loader.img2img_dataset(path="~/Pictures/dataset/buddha")
     image_paths = np.expand_dims(np.array(list(dataset.keys())), axis=1)
     labels = np.expand_dims(np.array([dataset[_] for _ in dataset.keys()]), axis=1)
 
@@ -108,6 +118,6 @@ if __name__ == "__main__":
 
     feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
     net.sess.run(net.enqueue_op, feed_dict=feed_dict)
-    img_batch, gt_batch, sketch_batch, line_batch = net.sess.run([net.image_batch, net.label_batch])
-    pred = net.sess.run(net.prediction)
-    loss = net.sess.run(net.loss)
+    img_batch, gt_batch= net.sess.run([net.image_batch, net.label_batch])
+    pass
+    
