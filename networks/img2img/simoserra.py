@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 import data
 import data.data_loader as loader
+from data.affine_transform import AffineTransform
 import networks.blocks as block
-import networks.utils as util
 from networks.train_op import build_train_op
 from options.base_options import BaseOptions
 
@@ -93,6 +93,12 @@ def calculate_loss(prediction, ground_truth):
     return total_loss
 
 def simoserra_net(input, args):
+    if args.do_affine:
+        affine = AffineTransform(translation=args.translation, scale=args.scale, shear=args.shear,
+                                 rotation=args.rotation, project=args.project, mean=args.imgaug_mean,
+                                 stddev=args.imgaug_stddev)
+        affine_mat = affine.to_transform_matrix()
+        input = tf.contrib.image.transform(input, affine_mat)
     net = block.conv_block(input, "block_1", filters=[48, 128, 128], kernel_sizes=[5, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_2", filters=[256, 256, 256], kernel_sizes=[3, 3, 3], stride=[2, 1, 1])
     net = block.conv_block(net, "block_3", filters=[256, 512, 1024, 1024, 1024, 512, 256], kernel_sizes=[3]*7,
@@ -100,13 +106,14 @@ def simoserra_net(input, args):
     net = block.conv_block(net, "block_4", filters=[256, 256, 128], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     net = block.conv_block(net, "block_5", filters=[128, 128, 48], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
     net = block.conv_block(net, "block_6", filters=[48, 24, args.img_channel], kernel_sizes=[4, 3, 3], stride=[0.5, 1, 1])
-    return net
+    return input
 
 
 if __name__ == "__main__":
     """
         Test code of img2img dataset loading
     """
+    from scipy.misc import imsave
     args = BaseOptions().initialize()
 
     dataset = loader.img2img_dataset(path="~/Pictures/dataset/buddha")
@@ -118,6 +125,10 @@ if __name__ == "__main__":
 
     feed_dict = {net.image_paths_placeholder: image_paths, net.ground_truth_placeholder: labels}
     net.sess.run(net.enqueue_op, feed_dict=feed_dict)
-    img_batch, gt_batch= net.sess.run([net.image_batch, net.label_batch])
-    pass
+    for e in range(10):
+        img_batch = net.sess.run([net.image_batch])
+        #img_batch, gt_batch= net.sess.run([net.image_batch, net.label_batch])
+        for i in range(args.batch_size):
+            imsave(os.path.expanduser("~/Pictures/test/img_in_batch_" + str(i) + ".jpg"), img_batch[i])
+            #imsave(os.path.expanduser("~/Pictures/test/img_out_batch_" + str(i) + ".jpg"), gt_batch[i])
     
